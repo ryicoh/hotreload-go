@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -83,8 +84,11 @@ func start() error {
 		if err != nil {
 			return err
 		}
-		go printReader(stdout)
-		go printReader(stderr)
+
+		wg := &sync.WaitGroup{}
+		wg.Add(2)
+		go printReader(wg, stdout)
+		go printReader(wg, stderr)
 		cmd.Start()
 
 		watcher, err := fsnotify.NewWatcher()
@@ -114,7 +118,7 @@ func start() error {
 			defer close(term)
 			go func() {
 				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM); err != nil {
-					fmt.Fprintf(os.Stderr, "terminate process: %v\n", err)
+					verbosePrintf("terminate process: %v\n", err)
 				}
 				term <- struct{}{}
 			}()
@@ -126,7 +130,7 @@ func start() error {
 					fmt.Fprintf(os.Stderr, "kill process: %v\n", err)
 				}
 			}
-			time.Sleep(1 * time.Second)
+			wg.Wait()
 
 			stdout.Close()
 			stderr.Close()
@@ -162,7 +166,9 @@ func start() error {
 	}
 }
 
-func printReader(r io.Reader) {
+func printReader(wg *sync.WaitGroup, r io.Reader) {
+	defer wg.Done()
+
 	reader := bufio.NewReader(r)
 	for {
 		str, err := reader.ReadString('\n')
