@@ -8,8 +8,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -71,6 +74,7 @@ verbose: %#v
 func start() error {
 	for {
 		cmd := exec.Command("sh", "-c", flagCommand)
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			return err
@@ -102,9 +106,40 @@ func start() error {
 			}
 		}
 
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+		closeFn := func() {
+			term := make(chan struct{})
+			defer close(term)
+			go func() {
+				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM); err != nil {
+					fmt.Fprintf(os.Stderr, "terminate process: %v\n", err)
+				}
+				term <- struct{}{}
+			}()
+
+			select {
+			case <-term:
+			case <-time.After(5 * time.Second):
+				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+					fmt.Fprintf(os.Stderr, "kill process: %v\n", err)
+				}
+			}
+			time.Sleep(1 * time.Second)
+
+			stdout.Close()
+			stderr.Close()
+			watcher.Close()
+		}
+
 	loop:
 		for {
 			select {
+			case <-stop:
+				closeFn()
+				return nil
+
 			case event, ok := <-watcher.Events:
 				if !ok {
 					return nil
@@ -123,10 +158,7 @@ func start() error {
 				fmt.Fprintf(os.Stderr, "watcher: %v\n", err)
 			}
 		}
-		stdout.Close()
-		stderr.Close()
-		cmd.Process.Kill()
-		watcher.Close()
+		closeFn()
 	}
 }
 
