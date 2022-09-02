@@ -177,9 +177,6 @@ func printReader(wg *sync.WaitGroup, r io.Reader) {
 		if err != nil {
 			break
 		}
-		if flagVerbose {
-			fmt.Print("| ", str)
-		}
 		fmt.Print(str)
 	}
 }
