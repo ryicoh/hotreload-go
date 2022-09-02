@@ -9,12 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -98,7 +98,7 @@ func start() error {
 
 		for _, glob := range flagIncludeSlice {
 			verbosePrintf("glob pattern: %#v\n", glob)
-			matches, err := filepath.Glob(glob)
+			matches, err := doublestar.Glob(os.DirFS("."), glob)
 			if err != nil {
 				return err
 			}
@@ -117,8 +117,9 @@ func start() error {
 			term := make(chan struct{})
 			defer close(term)
 			go func() {
+				verbosePrintf("send SIGTERM to pid(%v)\n", -cmd.Process.Pid)
 				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM); err != nil {
-					verbosePrintf("terminate process: %v\n", err)
+					verbosePrintf("terminate failed: %v\n", err)
 				}
 				term <- struct{}{}
 			}()
@@ -126,8 +127,9 @@ func start() error {
 			select {
 			case <-term:
 			case <-time.After(5 * time.Second):
+				verbosePrintf("send SIGKILL to pid(%v)\n", -cmd.Process.Pid)
 				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
-					fmt.Fprintf(os.Stderr, "kill process: %v\n", err)
+					fmt.Fprintf(os.Stderr, "kill failed: %v\n", err)
 				}
 			}
 			wg.Wait()
@@ -159,7 +161,7 @@ func start() error {
 				if !ok {
 					return nil
 				}
-				fmt.Fprintf(os.Stderr, "watcher: %v\n", err)
+				fmt.Fprintf(os.Stderr, "watcher error: %v\n", err)
 			}
 		}
 		closeFn()

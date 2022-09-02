@@ -13,7 +13,7 @@ $ go install  github.com/ryicoh/hotreload@latest
 # Usage
 
 ```bash
-hotreload -include="*.go" -cmd="go run ./main.go"
+hotreload -include="**/*.go" -verbose -cmd="go run ./main.go"
 ```
 
 
