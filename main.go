@@ -137,6 +137,8 @@ func start() error {
 			stdout.Close()
 			stderr.Close()
 			watcher.Close()
+
+			time.Sleep(200 * time.Millisecond)
 		}
 
 	loop:
