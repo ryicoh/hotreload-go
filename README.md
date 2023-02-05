@@ -1,11 +1,11 @@
-# hotreload [![Go](https://github.com/ryicoh/hotreload/actions/workflows/go.yml/badge.svg)](https://github.com/ryicoh/hotreload/actions/workflows/go.yml)
+# hotreload [![Go](https://github.com/ryu-ichiroh/hotreload/actions/workflows/go.yml/badge.svg)](https://github.com/ryu-ichiroh/hotreload/actions/workflows/go.yml)
 
 `hotreload` watch files and executes a command.
 
 # Installation
 
 ```bash
-$ go install  github.com/ryicoh/hotreload@latest
+$ go install  github.com/ryu-ichiroh/hotreload@latest
 ```
 
 
