@@ -1,4 +1,4 @@
-module github.com/ryicoh/hotreload
+module github.com/ryu-ichiroh/hotreload
 
 go 1.16
 
