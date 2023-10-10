@@ -5,7 +5,7 @@
 # Installation
 
 ```bash
-$ go install  github.com/ryu-ichiroh/hotreload@latest
+$ go install github.com/ryu-ichiroh/hotreload@latest
 ```
 
 
